@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ProxyHub</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+:root{--bg:#0b1016;--bg2:#0e151d;--card:#121a23;--line:#1f2b38;--txt:#e6edf3;--mut:#8b9bb0;--acc:#14b8a6;--acc2:#0d9488;--ok:#22c55e;--warn:#eab308;--bad:#f87171;--idle:#64748b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+a{color:var(--acc)}
+header{position:sticky;top:0;z-index:5;background:rgba(11,16,22,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:10px 16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:17px}
+.brand svg{width:28px;height:28px}
+.brand small{color:var(--mut);font-weight:500;font-size:12px}
+nav{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+nav button{background:none;border:0;color:var(--mut);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+nav button.on{background:var(--card);color:var(--txt)}
+nav button:hover{color:var(--txt)}
+.logout{color:var(--mut);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:6px 11px;border-radius:8px}
+main{max-width:1280px;margin:0 auto;padding:18px 16px 60px}
+.tab{display:none}.tab.on{display:block}
+.warnbox{background:#2a2410;border:1px solid #5c4d12;color:#fde68a;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat .k{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+.stat .v{font-size:24px;font-weight:650;margin-top:4px;font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th{text-align:left;color:var(--mut);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #18222d;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.mono,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+.ok{background:var(--ok);box-shadow:0 0 8px #22c55e88}.starting{background:var(--warn)}.nosignal,.error{background:var(--bad)}.idle{background:var(--idle)}.off{background:#334155}
+.muted{color:var(--mut)}
+.err{color:var(--bad);font-size:12px}
+.btn{background:var(--bg2);border:1px solid var(--line);color:var(--txt);padding:6px 11px;border-radius:8px;cursor:pointer;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:#2f4153}
+.btn.p{background:var(--acc);border-color:var(--acc);color:#04201d;font-weight:600}
+.btn.d{color:var(--bad)}
+.btn.s{padding:3px 8px;font-size:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:5px}
+input,select,textarea{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:#0b1218;color:var(--txt);font-size:14px;outline:none;font-family:inherit}
+textarea{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;min-height:150px}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--txt);cursor:pointer}
+.chk input{width:auto}
+.hint{color:var(--mut);font-size:12px;margin-top:5px}
+.pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;border:1px solid var(--line);color:var(--mut);margin-left:4px}
+.pill.hls{color:#a5b4fc;border-color:#3730a3}
+.links{display:flex;gap:5px;flex-wrap:wrap}
+pre.log{background:#070b10;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:65vh;overflow:auto;font-size:12px;margin:0;white-space:pre-wrap;word-break:break-all}
+.toast{position:fixed;bottom:18px;right:18px;background:#0f2f2c;border:1px solid var(--acc2);color:#ccfbf1;padding:10px 14px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;z-index:20;max-width:90vw}
+.toast.on{opacity:1}.toast.bad{background:#2a1416;border-color:#5b2226;color:#fecaca}
+dialog{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:14px;padding:20px;width:min(560px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+.empty{color:var(--mut);text-align:center;padding:22px}
+code{background:#0b1218;border:1px solid var(--line);padding:1px 6px;border-radius:6px;font-size:12.5px}
+@media (max-width:640px){.stat .v{font-size:20px}nav button{padding:7px 9px}}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <div class="brand"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#0ea5a4"/><path d="M8 10h10a5 5 0 010 10h-6v4H8zm4 4v2h6a1 1 0 000-2z" fill="#fff"/><circle cx="24" cy="23" r="3" fill="#fde047"/></svg>ProxyHub <small id="ver"></small></div>
+  <nav id="nav">
+    <button data-t="dash" class="on">Dashboard</button>
+    <button data-t="ch">Canale</button>
+    <button data-t="udpxy">udpxy</button>
+    <button data-t="cl">Clienți</button>
+    <button data-t="set">Setări</button>
+    <button data-t="log">Log</button>
+  </nav>
+  <a class="logout" href="/logout">Ieșire</a>
+</div></header>
+
+<main>
+<div id="defpw" class="warnbox" style="display:none">⚠ Folosești parola implicită <b>admin/admin</b>. Schimb-o din <a href="#" onclick="go('set');return false">Setări</a>.</div>
+
+<!-- DASHBOARD -->
+<section class="tab on" id="t-dash">
+  <div class="grid">
+    <div class="stat"><div class="k">Canale active</div><div class="v" id="s-ch">–</div></div>
+    <div class="stat"><div class="k">Clienți</div><div class="v" id="s-cl">–</div></div>
+    <div class="stat"><div class="k">Intrare</div><div class="v" id="s-in">–</div></div>
+    <div class="stat"><div class="k">Ieșire</div><div class="v" id="s-out">–</div></div>
+    <div class="stat"><div class="k">Grupuri udpxy</div><div class="v" id="s-gr">–</div></div>
+    <div class="stat"><div class="k">Uptime</div><div class="v" id="s-up">–</div></div>
+  </div>
+  <div class="card"><h2>Canale <span class="row"><a class="btn s" href="/playlist.m3u" target="_blank">Playlist M3U (TS)</a><a class="btn s" href="/playlist.m3u?type=hls" target="_blank">Playlist M3U (HLS)</a></span></h2>
+    <div class="tw"><table><thead><tr><th>Canal</th><th>Stare</th><th>Bitrate</th><th>Clienți</th></tr></thead><tbody id="dash-ch"></tbody></table></div>
+  </div>
+  <div class="card"><h2>Clienți conectați</h2>
+    <div class="tw"><table><thead><tr><th>IP</th><th>Canal / grup</th><th>Format</th><th>Viteză</th><th>Durată</th></tr></thead><tbody id="dash-cl"></tbody></table></div>
+  </div>
+</section>
+
+<!-- CHANNELS -->
+<section class="tab" id="t-ch">
+  <div class="card"><h2>Canale <span class="row"><button class="btn" onclick="openImport()">Import M3U</button><button class="btn p" onclick="openCh()">+ Canal nou</button></span></h2>
+    <div class="tw"><table><thead><tr><th></th><th>Nume</th><th>Sursă</th><th>Stare</th><th>Bitrate</th><th>Cl.</th><th>Link-uri</th><th></th></tr></thead><tbody id="ch-list"></tbody></table></div>
+    <div class="hint">Link-uri: <code>/&lt;nume&gt;</code> = HTTP-TS (stil Astra), <code>/&lt;nume&gt;.m3u8</code> = HLS. PID-urile audio/video rămân originale (fără remux).</div>
+  </div>
+</section>
+
+<!-- UDPXY -->
+<section class="tab" id="t-udpxy">
+  <div class="card"><h2>udpxy — multicast → HTTP <span id="udpxy-state" class="pill"></span></h2>
+    <p class="muted" style="margin-top:0">Orice grup multicast poate fi cerut direct, compatibil cu udpxy:</p>
+    <p><code id="udpxy-ex1"></code><br><code id="udpxy-ex2" style="display:inline-block;margin-top:6px"></code></p>
+    <div class="row" style="margin:10px 0 4px">
+      <input id="tst" placeholder="239.1.1.1:1234" style="max-width:220px">
+      <button class="btn" onclick="copyTest()">Copiază link</button>
+      <button class="btn" onclick="addFromGroup()">Salvează ca și canal</button>
+    </div>
+    <div class="hint">Interfața multicast se setează în Setări. Grupurile cu același port sunt separate corect (IP_PKTINFO).</div>
+  </div>
+  <div class="card"><h2>Grupuri active (fără canal definit)</h2>
+    <div class="tw"><table><thead><tr><th>Sursă</th><th>Stare</th><th>Bitrate</th><th>Clienți</th></tr></thead><tbody id="gr-list"></tbody></table></div>
+  </div>
+</section>
+
+<!-- CLIENTS -->
+<section class="tab" id="t-cl">
+  <div class="card"><h2>Clienți <span class="muted" id="cl-count" style="font-weight:400"></span></h2>
+    <div class="tw"><table><thead><tr><th>IP</th><th>Canal / grup</th><th>Format</th><th>Viteză</th><th>Trafic</th><th>Durată</th><th>Pierderi</th><th>Player</th><th></th></tr></thead><tbody id="cl-list"></tbody></table></div>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section class="tab" id="t-set">
+  <div class="card"><h2>Rețea și acces</h2>
+    <div class="form">
+      <div><label>Adresă ascultare (port)</label><input id="f-listen" placeholder=":8090"><div class="hint">Ex: <code>:8090</code> sau <code>0.0.0.0:4000</code></div></div>
+      <div><label>Interfață multicast</label><select id="f-iface"></select><div class="hint">Interfața pe care vine IPTV-ul</div></div>
+      <div><label>URL public (pentru playlist)</label><input id="f-public" placeholder="http://exemplu.ro:8090"><div class="hint">Gol = adresa din browser</div></div>
+      <div><label>Token streaming (opțional)</label><input id="f-token" placeholder="gol = fără token"><div class="hint">Dacă e setat: <code>?token=...</code> obligatoriu</div></div>
+      <div><label>IP-uri permise (opțional)</label><textarea id="f-ips" style="min-height:70px" placeholder="192.168.1.0/24&#10;10.0.0.5"></textarea><div class="hint">Unul pe linie. Gol = oricine.</div></div>
+      <div>
+        <label>HLS</label>
+        <div class="row"><input id="f-seg" type="number" min="1" max="20" style="max-width:90px"><span class="muted">sec / segment</span></div>
+        <div class="row" style="margin-top:8px"><input id="f-win" type="number" min="3" max="30" style="max-width:90px"><span class="muted">segmente în playlist</span></div>
+        <label class="chk" style="margin-top:14px"><input type="checkbox" id="f-udpxy"> udpxy activ (<code>/udp/</code>, <code>/rtp/</code>)</label>
+      </div>
+    </div>
+    <div class="row" style="margin-top:16px"><button class="btn p" onclick="saveSettings()">Salvează</button><button class="btn" id="restartBtn" style="display:none" onclick="restartSrv()">Repornește serverul web</button></div>
+  </div>
+  <div class="card"><h2>Utilizator și parolă</h2>
+    <div class="form">
+      <div><label>Utilizator</label><input id="p-user" autocomplete="username"></div>
+      <div><label>Parola curentă</label><input id="p-cur" type="password" autocomplete="current-password"></div>
+      <div><label>Parola nouă</label><input id="p-new" type="password" autocomplete="new-password" placeholder="min. 6 caractere"></div>
+      <div><label>Confirmă parola nouă</label><input id="p-new2" type="password" autocomplete="new-password"></div>
+    </div>
+    <div class="row" style="margin-top:16px"><button class="btn p" onclick="savePw()">Actualizează</button></div>
+  </div>
+  <div class="card muted" id="sysinfo" style="font-size:12px"></div>
+</section>
+
+<!-- LOG -->
+<section class="tab" id="t-log">
+  <div class="card"><h2>Log <button class="btn s" onclick="loadLog()">Reîncarcă</button></h2><pre class="log" id="log"></pre></div>
+</section>
+</main>
+
+<dialog id="dlg-ch"><form method="dialog" onsubmit="return false">
+  <h2 style="margin:0 0 14px;font-size:17px" id="dlg-title">Canal nou</h2>
+  <input type="hidden" id="c-old">
+  <div class="form" style="grid-template-columns:1fr 1fr">
+    <div><label>Nume (link)</label><input id="c-name" placeholder="hd365"></div>
+    <div><label>Titlu (opțional)</label><input id="c-title" placeholder="HD365"></div>
+  </div>
+  <div style="margin-top:12px"><label>Sursă</label><input id="c-input" class="mono" placeholder="udp://@239.1.1.1:1234">
+    <div class="hint"><code>udp://@239.1.1.1:1234</code> · <code>udp://eth1@239.1.1.1:1234</code> · <code>rtp://@239.1.1.1:5000</code> · <code>http://server/stream.ts</code> · <code>https://.../index.m3u8</code></div></div>
+  <div class="row" style="margin-top:14px;gap:18px">
+    <label class="chk"><input type="checkbox" id="c-en" checked> Activ</label>
+    <label class="chk"><input type="checkbox" id="c-od" checked> La cerere (pornește doar când are clienți)</label>
+  </div>
+  <div class="row" style="margin-top:18px;justify-content:flex-end"><button class="btn" onclick="dlgCh.close()">Anulează</button><button class="btn p" onclick="saveCh()">Salvează</button></div>
+</form></dialog>
+
+<dialog id="dlg-imp"><form method="dialog" onsubmit="return false">
+  <h2 style="margin:0 0 14px;font-size:17px">Import listă M3U</h2>
+  <textarea id="imp-text" placeholder="#EXTM3U&#10;#EXTINF:-1,HD365&#10;udp://@239.1.1.1:1234"></textarea>
+  <label class="chk" style="margin-top:12px"><input type="checkbox" id="imp-od" checked> Canale la cerere</label>
+  <div class="row" style="margin-top:18px;justify-content:flex-end"><button class="btn" onclick="dlgImp.close()">Anulează</button><button class="btn p" onclick="doImport()">Importă</button></div>
+</form></dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const dlgCh=$('dlg-ch'),dlgImp=$('dlg-imp');
+let ST=null,CFG=null,cur='dash';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function rate(b){if(!b)return'0';if(b>=1e9)return(b/1e9).toFixed(2)+' Gb/s';if(b>=1e6)return(b/1e6).toFixed(2)+' Mb/s';if(b>=1e3)return(b/1e3).toFixed(0)+' kb/s';return b+' b/s'}
+function size(b){if(b>=1e9)return(b/1e9).toFixed(2)+' GB';if(b>=1e6)return(b/1e6).toFixed(1)+' MB';if(b>=1e3)return(b/1e3).toFixed(0)+' KB';return b+' B'}
+function dur(s){const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),x=s%60;if(d)return d+'z '+h+'h';if(h)return h+'h '+m+'m';if(m)return m+'m '+x+'s';return x+'s'}
+const stName={ok:'OK',starting:'pornește',nosignal:'fără semnal',idle:'inactiv',off:'oprit',error:'eroare'};
+const kindName={udpxy:'udpxy','http-ts':'HTTP-TS',hls:'HLS'};
+function toast(m,bad){const t=$('toast');t.textContent=m;t.className='toast on'+(bad?' bad':'');clearTimeout(t._t);t._t=setTimeout(()=>t.className='toast',3000)}
+async function api(p,body){
+  const o=body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
+  const r=await fetch('/api/'+p,o);
+  if(r.status===401){location.href='/login';throw new Error('auth')}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+function base(){return(CFG&&CFG.config.public_url)?CFG.config.public_url.replace(/\/$/,''):location.origin}
+function tq(){return(ST&&ST.token)?'?token='+encodeURIComponent(ST.token):''}
+function go(t){cur=t;document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.tab').forEach(s=>s.classList.toggle('on',s.id==='t-'+t));if(t==='log')loadLog();if(t==='set')fillSettings();}
+$('nav').onclick=e=>{if(e.target.dataset.t)go(e.target.dataset.t)};
+function copy(txt){(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('Copiat: '+txt)).catch(()=>{prompt('Copiază:',txt)})}
+
+function render(){
+  if(!ST)return;
+  const chs=ST.channels||[],cl=ST.clients||[],gr=ST.groups||[];
+  $('s-ch').textContent=chs.filter(c=>c.status==='ok').length+' / '+chs.filter(c=>c.enabled).length;
+  $('s-cl').textContent=cl.length;$('s-in').textContent=rate(ST.total_in);$('s-out').textContent=rate(ST.total_out);
+  $('s-gr').textContent=gr.length;$('s-up').textContent=dur(ST.uptime);
+  $('dash-ch').innerHTML=chs.length?chs.map(c=>`<tr><td><b>${esc(c.title||c.name)}</b> <span class="muted mono">/${esc(c.name)}</span></td><td><span class="dot ${c.status}"></span>${stName[c.status]||c.status}${c.hls_active?'<span class="pill hls">HLS</span>':''}</td><td>${c.bitrate?rate(c.bitrate):'<span class="muted">–</span>'}</td><td>${c.clients||'<span class="muted">0</span>'}</td></tr>`).join(''):'<tr><td colspan=4 class="empty">Niciun canal. Adaugă din tabul Canale.</td></tr>';
+  $('dash-cl').innerHTML=cl.length?cl.map(c=>`<tr><td class="mono">${esc(c.ip)}</td><td>${esc(c.target)}</td><td>${kindName[c.kind]||c.kind}</td><td>${rate(c.rate)}</td><td>${dur(c.seconds)}</td></tr>`).join(''):'<tr><td colspan=5 class="empty">Niciun client conectat.</td></tr>';
+  const b=base(),q=tq();
+  $('ch-list').innerHTML=chs.length?chs.map((c,i)=>`<tr>
+    <td><input type="checkbox" ${c.enabled?'checked':''} onchange="toggleCh(${i},this.checked)" title="Activ"></td>
+    <td><b>${esc(c.name)}</b>${c.title&&c.title!==c.name?'<div class="muted" style="font-size:12px">'+esc(c.title)+'</div>':''}${c.on_demand?'<span class="pill">la cerere</span>':'<span class="pill">permanent</span>'}</td>
+    <td class="mono" style="max-width:320px;word-break:break-all">${esc(c.input)}${c.error?'<div class="err">'+esc(c.error)+'</div>':''}</td>
+    <td style="white-space:nowrap"><span class="dot ${c.status}"></span>${stName[c.status]||c.status}${c.hls_active?'<span class="pill hls">HLS</span>':''}</td>
+    <td style="white-space:nowrap">${c.bitrate?rate(c.bitrate):'<span class="muted">–</span>'}</td><td>${c.clients}</td>
+    <td><div class="links"><button class="btn s" data-u="${esc(b+'/'+c.name+q)}" onclick="copy(this.dataset.u)">TS</button><button class="btn s" data-u="${esc(b+'/'+c.name+'.m3u8'+q)}" onclick="copy(this.dataset.u)">HLS</button></div></td>
+    <td><div class="links"><button class="btn s" onclick="openCh(${i})">Editează</button><button class="btn s d" onclick="delCh(${i})">Șterge</button></div></td></tr>`).join(''):'<tr><td colspan=8 class="empty">Niciun canal încă. Apasă „+ Canal nou” sau „Import M3U”.</td></tr>';
+  $('gr-list').innerHTML=gr.length?gr.map(g=>`<tr><td class="mono">${esc(g.input)}${g.error?'<div class="err">'+esc(g.error)+'</div>':''}</td><td><span class="dot ${g.status}"></span>${stName[g.status]||g.status}</td><td>${rate(g.bitrate)}</td><td>${g.subs}</td></tr>`).join(''):'<tr><td colspan=4 class="empty">Niciun grup udpxy activ.</td></tr>';
+  $('udpxy-state').textContent=ST.udpxy?'activ':'dezactivat';
+  $('udpxy-ex1').textContent=b+'/udp/239.1.1.1:1234'+q;$('udpxy-ex2').textContent=b+'/rtp/239.1.1.1:5000'+q;
+  $('cl-count').textContent=cl.length+' conectați · '+rate(ST.total_out);
+  $('cl-list').innerHTML=cl.length?cl.map(c=>`<tr><td class="mono">${esc(c.ip)}</td><td>${esc(c.target)}</td><td>${kindName[c.kind]||c.kind}</td><td>${rate(c.rate)}</td><td>${size(c.bytes)}</td><td>${dur(c.seconds)}</td><td>${c.dropped?'<span class="err">'+c.dropped+'</span>':'0'}</td><td class="muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${esc(c.ua)}">${esc(c.ua)}</td><td><button class="btn s d" onclick="kick(${c.id})">Deconectează</button></td></tr>`).join(''):'<tr><td colspan=9 class="empty">Niciun client conectat.</td></tr>';
+}
+async function poll(){try{ST=await api('status');render()}catch(e){}setTimeout(poll,2000)}
+async function loadCfg(){CFG=await api('config');$('ver').textContent='v'+CFG.version;$('defpw').style.display=CFG.default_password?'block':'none';}
+
+function openCh(i){
+  const c=i===undefined?null:ST.channels[i];
+  $('dlg-title').textContent=c?'Editează canal':'Canal nou';
+  $('c-old').value=c?c.name:'';$('c-name').value=c?c.name:'';$('c-title').value=c?(c.title||''):'';
+  $('c-input').value=c?c.input:'';$('c-en').checked=c?c.enabled:true;$('c-od').checked=c?c.on_demand:true;
+  dlgCh.showModal();$('c-name').focus();
+}
+async function saveCh(){
+  try{await api('channel/save',{old_name:$('c-old').value,name:$('c-name').value,title:$('c-title').value,input:$('c-input').value,enabled:$('c-en').checked,on_demand:$('c-od').checked});
+    dlgCh.close();toast('Canal salvat');ST=await api('status');render();await loadCfg();}catch(e){toast(e.message,1)}
+}
+async function delCh(i){const c=ST.channels[i];if(!confirm('Ștergi canalul '+c.name+'?'))return;try{await api('channel/delete',{name:c.name});toast('Șters');ST=await api('status');render()}catch(e){toast(e.message,1)}}
+async function toggleCh(i,en){try{await api('channel/toggle',{name:ST.channels[i].name,enabled:en});ST=await api('status');render()}catch(e){toast(e.message,1)}}
+function openImport(){$('imp-text').value='';dlgImp.showModal()}
+async function doImport(){try{const r=await api('import',{text:$('imp-text').value,on_demand:$('imp-od').checked});dlgImp.close();toast(`Importate: ${r.added}, ignorate: ${r.skipped}`);ST=await api('status');render()}catch(e){toast(e.message,1)}}
+async function kick(id){try{await api('kick',{id});toast('Client deconectat')}catch(e){toast(e.message,1)}}
+function grpVal(){const v=$('tst').value.trim().replace(/^@/,'');if(!/^\d+\.\d+\.\d+\.\d+:\d+$/.test(v)){toast('Format: 239.1.1.1:1234',1);return null}return v}
+function copyTest(){const v=grpVal();if(v)copy(base()+'/udp/'+v+tq())}
+function addFromGroup(){const v=grpVal();if(!v)return;openCh();$('c-input').value='udp://@'+v;$('c-name').focus()}
+
+async function fillSettings(){
+  await loadCfg();const c=CFG.config;
+  $('f-listen').value=c.listen;$('f-public').value=c.public_url||'';$('f-token').value=c.stream_token||'';
+  $('f-ips').value=(c.allowed_ips||[]).join('\n');$('f-seg').value=c.hls_segment;$('f-win').value=c.hls_window;$('f-udpxy').checked=c.udpxy_enabled;
+  $('p-user').value=c.username;
+  const ifs=await api('interfaces');
+  $('f-iface').innerHTML='<option value="">Implicit (ruta sistemului)</option>'+ifs.map(i=>`<option value="${esc(i.name)}">${esc(i.name)} — ${esc(i.ips.join(', '))}${i.up?'':' (oprită)'}</option>`).join('');
+  if(c.interface&&![...$('f-iface').options].some(o=>o.value===c.interface))$('f-iface').insertAdjacentHTML('beforeend',`<option value="${esc(c.interface)}">${esc(c.interface)}</option>`);
+  $('f-iface').value=c.interface||'';
+  $('sysinfo').textContent=`ProxyHub v${CFG.version} · ${CFG.os} · goroutine ${ST?ST.goroutines:'-'} · memorie ${ST?size(ST.mem):'-'}`;
+}
+async function saveSettings(){
+  try{const r=await api('settings',{listen:$('f-listen').value,interface:$('f-iface').value,public_url:$('f-public').value,stream_token:$('f-token').value,
+    allowed_ips:$('f-ips').value.split('\n'),hls_segment:+$('f-seg').value,hls_window:+$('f-win').value,udpxy_enabled:$('f-udpxy').checked});
+    toast(r.restart_needed?'Salvat. Repornește serverul web pentru noul port.':'Setări salvate');$('restartBtn').style.display=r.restart_needed?'':'none';await loadCfg();}catch(e){toast(e.message,1)}
+}
+async function restartSrv(){
+  try{await api('restart',{})}catch(e){}
+  const l=$('f-listen').value.trim(),port=(l.split(':').pop()||'8090');
+  toast('Repornesc… redirecționez către portul '+port);
+  setTimeout(()=>{location.href=location.protocol+'//'+location.hostname+':'+port+'/panel'},1500);
+}
+async function savePw(){
+  if($('p-new').value!==$('p-new2').value){toast('Parolele noi nu coincid',1);return}
+  try{await api('password',{username:$('p-user').value,current:$('p-cur').value,new:$('p-new').value});toast('Credențiale actualizate');
+    $('p-cur').value=$('p-new').value=$('p-new2').value='';await loadCfg();}catch(e){toast(e.message,1)}
+}
+async function loadLog(){try{const l=await api('logs');const el=$('log');el.textContent=l.join('\n')||'(gol)';el.scrollTop=el.scrollHeight}catch(e){}}
+
+loadCfg().then(poll);
+</script>
+</body>
+</html>

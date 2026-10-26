@@ -1,0 +1,6 @@
+proxyhub.json
+proxyhub.json.tmp
+proxyhub.log*
+/proxyhub
+/ProxyHub
+*.exe~
