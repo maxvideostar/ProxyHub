@@ -81,6 +81,7 @@ code{background:#0b1218;border:1px solid var(--line);padding:1px 6px;border-radi
 </div></header>
 
 <main>
+<div id="lerr" class="warnbox" style="display:none;background:#2a1416;border-color:#5b2226;color:#fecaca"></div>
 <div id="defpw" class="warnbox" style="display:none">⚠ Folosești parola implicită <b>admin/admin</b>. Schimb-o din <a href="#" onclick="go('set');return false">Setări</a>.</div>
 
 <!-- DASHBOARD -->
@@ -137,9 +138,10 @@ code{background:#0b1218;border:1px solid var(--line);padding:1px 6px;border-radi
 <section class="tab" id="t-set">
   <div class="card"><h2>Rețea și acces</h2>
     <div class="form">
-      <div><label>Adresă ascultare (port)</label><input id="f-listen" placeholder=":8090"><div class="hint">Ex: <code>:8090</code> sau <code>0.0.0.0:4000</code></div></div>
+      <div><label>Port relay canale + panou</label><input id="f-listen" placeholder=":4000"><div class="hint">Ex: <code>4000</code> sau <code>0.0.0.0:4000</code> — link-uri <code>/&lt;canal&gt;</code></div></div>
+      <div><label>Port udpxy</label><input id="f-ulisten" placeholder=":7000"><div class="hint">Ex: <code>7000</code> — link-uri <code>/udp/...</code>. Gol = același port cu relay-ul</div></div>
       <div><label>Interfață multicast</label><select id="f-iface"></select><div class="hint">Interfața pe care vine IPTV-ul</div></div>
-      <div><label>URL public (pentru playlist)</label><input id="f-public" placeholder="http://exemplu.ro:8090"><div class="hint">Gol = adresa din browser</div></div>
+      <div><label>URL public (pentru playlist)</label><input id="f-public" placeholder="http://exemplu.ro:4000"><div class="hint">Gol = adresa din browser</div></div>
       <div><label>Token streaming (opțional)</label><input id="f-token" placeholder="gol = fără token"><div class="hint">Dacă e setat: <code>?token=...</code> obligatoriu</div></div>
       <div><label>IP-uri permise (opțional)</label><textarea id="f-ips" style="min-height:70px" placeholder="192.168.1.0/24&#10;10.0.0.5"></textarea><div class="hint">Unul pe linie. Gol = oricine.</div></div>
       <div>
@@ -214,6 +216,7 @@ async function api(p,body){
   return j;
 }
 function base(){return(CFG&&CFG.config.public_url)?CFG.config.public_url.replace(/\/$/,''):location.origin}
+function ubase(){const b=new URL(base());if(ST&&ST.udpxy_sep){const port=(ST.udpxy_listen||'').split(':').pop();b.port=port}return b.origin}
 function tq(){return(ST&&ST.token)?'?token='+encodeURIComponent(ST.token):''}
 function go(t){cur=t;document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));document.querySelectorAll('.tab').forEach(s=>s.classList.toggle('on',s.id==='t-'+t));if(t==='log')loadLog();if(t==='set')fillSettings();}
 $('nav').onclick=e=>{if(e.target.dataset.t)go(e.target.dataset.t)};
@@ -237,8 +240,9 @@ function render(){
     <td><div class="links"><button class="btn s" data-u="${esc(b+'/'+c.name+q)}" onclick="copy(this.dataset.u)">TS</button><button class="btn s" data-u="${esc(b+'/'+c.name+'.m3u8'+q)}" onclick="copy(this.dataset.u)">HLS</button></div></td>
     <td><div class="links"><button class="btn s" onclick="openCh(${i})">Editează</button><button class="btn s d" onclick="delCh(${i})">Șterge</button></div></td></tr>`).join(''):'<tr><td colspan=8 class="empty">Niciun canal încă. Apasă „+ Canal nou” sau „Import M3U”.</td></tr>';
   $('gr-list').innerHTML=gr.length?gr.map(g=>`<tr><td class="mono">${esc(g.input)}${g.error?'<div class="err">'+esc(g.error)+'</div>':''}</td><td><span class="dot ${g.status}"></span>${stName[g.status]||g.status}</td><td>${rate(g.bitrate)}</td><td>${g.subs}</td></tr>`).join(''):'<tr><td colspan=4 class="empty">Niciun grup udpxy activ.</td></tr>';
-  $('udpxy-state').textContent=ST.udpxy?'activ':'dezactivat';
-  $('udpxy-ex1').textContent=b+'/udp/239.1.1.1:1234'+q;$('udpxy-ex2').textContent=b+'/rtp/239.1.1.1:5000'+q;
+  $('udpxy-state').textContent=(ST.udpxy?'activ':'dezactivat')+' · port '+(ST.udpxy_sep?ST.udpxy_listen:ST.listen);
+  const ub=ubase();$('udpxy-ex1').textContent=ub+'/udp/239.1.1.1:1234'+q;$('udpxy-ex2').textContent=ub+'/rtp/239.1.1.1:5000'+q;
+  const le=Object.entries(ST.listen_errors||{});$('lerr').style.display=le.length?'block':'none';$('lerr').textContent=le.map(([k,v])=>'⚠ Portul '+k+' nu a putut porni: '+v).join(' · ');
   $('cl-count').textContent=cl.length+' conectați · '+rate(ST.total_out);
   $('cl-list').innerHTML=cl.length?cl.map(c=>`<tr><td class="mono">${esc(c.ip)}</td><td>${esc(c.target)}</td><td>${kindName[c.kind]||c.kind}</td><td>${rate(c.rate)}</td><td>${size(c.bytes)}</td><td>${dur(c.seconds)}</td><td>${c.dropped?'<span class="err">'+c.dropped+'</span>':'0'}</td><td class="muted" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${esc(c.ua)}">${esc(c.ua)}</td><td><button class="btn s d" onclick="kick(${c.id})">Deconectează</button></td></tr>`).join(''):'<tr><td colspan=9 class="empty">Niciun client conectat.</td></tr>';
 }
@@ -262,12 +266,12 @@ function openImport(){$('imp-text').value='';dlgImp.showModal()}
 async function doImport(){try{const r=await api('import',{text:$('imp-text').value,on_demand:$('imp-od').checked});dlgImp.close();toast(`Importate: ${r.added}, ignorate: ${r.skipped}`);ST=await api('status');render()}catch(e){toast(e.message,1)}}
 async function kick(id){try{await api('kick',{id});toast('Client deconectat')}catch(e){toast(e.message,1)}}
 function grpVal(){const v=$('tst').value.trim().replace(/^@/,'');if(!/^\d+\.\d+\.\d+\.\d+:\d+$/.test(v)){toast('Format: 239.1.1.1:1234',1);return null}return v}
-function copyTest(){const v=grpVal();if(v)copy(base()+'/udp/'+v+tq())}
+function copyTest(){const v=grpVal();if(v)copy(ubase()+'/udp/'+v+tq())}
 function addFromGroup(){const v=grpVal();if(!v)return;openCh();$('c-input').value='udp://@'+v;$('c-name').focus()}
 
 async function fillSettings(){
   await loadCfg();const c=CFG.config;
-  $('f-listen').value=c.listen;$('f-public').value=c.public_url||'';$('f-token').value=c.stream_token||'';
+  $('f-listen').value=c.listen;$('f-ulisten').value=c.udpxy_listen||'';$('f-public').value=c.public_url||'';$('f-token').value=c.stream_token||'';
   $('f-ips').value=(c.allowed_ips||[]).join('\n');$('f-seg').value=c.hls_segment;$('f-win').value=c.hls_window;$('f-udpxy').checked=c.udpxy_enabled;
   $('p-user').value=c.username;
   const ifs=await api('interfaces');
@@ -277,15 +281,17 @@ async function fillSettings(){
   $('sysinfo').textContent=`ProxyHub v${CFG.version} · ${CFG.os} · goroutine ${ST?ST.goroutines:'-'} · memorie ${ST?size(ST.mem):'-'}`;
 }
 async function saveSettings(){
-  try{const r=await api('settings',{listen:$('f-listen').value,interface:$('f-iface').value,public_url:$('f-public').value,stream_token:$('f-token').value,
+  try{const r=await api('settings',{listen:$('f-listen').value,udpxy_listen:$('f-ulisten').value,interface:$('f-iface').value,public_url:$('f-public').value,stream_token:$('f-token').value,
     allowed_ips:$('f-ips').value.split('\n'),hls_segment:+$('f-seg').value,hls_window:+$('f-win').value,udpxy_enabled:$('f-udpxy').checked});
     toast(r.restart_needed?'Salvat. Repornește serverul web pentru noul port.':'Setări salvate');$('restartBtn').style.display=r.restart_needed?'':'none';await loadCfg();}catch(e){toast(e.message,1)}
 }
 async function restartSrv(){
   try{await api('restart',{})}catch(e){}
-  const l=$('f-listen').value.trim(),port=(l.split(':').pop()||'8090');
+  const l=$('f-listen').value.trim(),ul=$('f-ulisten').value.trim();
+  const mine=location.port||(location.protocol==='https:'?'443':'80');
+  const port=(ul&&ul.split(':').pop()===mine)?mine:(l.split(':').pop()||'4000');
   toast('Repornesc… redirecționez către portul '+port);
-  setTimeout(()=>{location.href=location.protocol+'//'+location.hostname+':'+port+'/panel'},1500);
+  setTimeout(()=>{location.href=location.protocol+'//'+location.hostname+':'+port+'/panel'},1800);
 }
 async function savePw(){
   if($('p-new').value!==$('p-new2').value){toast('Parolele noi nu coincid',1);return}

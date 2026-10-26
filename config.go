@@ -26,6 +26,7 @@ type Channel struct {
 
 type Config struct {
 	Listen       string    `json:"listen"`
+	UdpxyListen  string    `json:"udpxy_listen"`
 	Interface    string    `json:"interface"`
 	Username     string    `json:"username"`
 	PasswordHash string    `json:"password_hash"`
@@ -53,7 +54,8 @@ var reservedNames = map[string]bool{
 
 func defaultConfig() *Config {
 	return &Config{
-		Listen:       ":8090",
+		Listen:       ":4000",
+		UdpxyListen:  ":7000",
 		Username:     "admin",
 		PasswordHash: hashPassword("admin"),
 		UdpxyEnabled: true,

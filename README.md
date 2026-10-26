@@ -6,8 +6,8 @@
 
 | Funcție | Detalii |
 |---|---|
-| **udpxy** | `http://IP:8090/udp/239.1.1.1:1234` și `/rtp/...` — compatibil cu playerele/playlisturile udpxy |
-| **Canale** | link-uri scurte stil Astra: `http://IP:8090/<canal>` (HTTP-TS) și `http://IP:8090/<canal>.m3u8` (HLS) |
+| **udpxy** | `http://IP:7000/udp/239.1.1.1:1234` și `/rtp/...` — compatibil cu playerele/playlisturile udpxy |
+| **Canale** | link-uri scurte stil Astra: `http://IP:4000/<canal>` (HTTP-TS) și `http://IP:4000/<canal>.m3u8` (HLS) |
 | **Surse** | `udp://@239.1.1.1:1234`, `udp://eth1@239.1.1.1:1234`, `rtp://@...`, `http(s)://...ts`, `http(s)://.../index.m3u8` |
 | **PID-uri** | rămân originale — fără remux, fără transcodare |
 | **Multicast** | mai multe grupuri pe același port separate corect (IP_PKTINFO), și pe Windows |
@@ -19,7 +19,7 @@
 
 1. Descarcă `bin/proxyhub-windows-amd64.exe` și `bin/install-windows.bat` în același folder (ex. `C:\ProxyHub`).
 2. Dublu-click pe `install-windows.bat` (cere drepturi de admin) → instalează serviciul, regula de firewall și deschide panoul.
-3. Panou: **http://localhost:8090/panel** — login **admin / admin** (schimbă-l din *Setări*).
+3. Panou: **http://localhost:4000/panel** — login **admin / admin** (schimbă-l din *Setări*).
 
 Doar test, fără serviciu: dublu-click pe `proxyhub-windows-amd64.exe` (rulează în consolă și deschide browserul).
 
@@ -49,15 +49,19 @@ proxyhub [-c proxyhub.json] [comanda]
 
 Configurația (`proxyhub.json`) și logul (`proxyhub.log`) stau lângă executabil.
 
+## Porturi
+
+Implicit: **4000** = relay canale + panou, **7000** = udpxy (panoul e accesibil și pe 7000). Se schimbă din *Setări* → „Repornește serverul web”, sau din `proxyhub.json` (`listen`, `udpxy_listen`) + restart serviciu. `udpxy_listen` gol = udpxy pe același port cu relay-ul.
+
 ## Link-uri
 
 ```
-http://IP:8090/udp/239.1.1.1:1234        udpxy (UDP)
-http://IP:8090/rtp/239.1.1.1:5000        udpxy (RTP)
-http://IP:8090/hd365                     canal HTTP-TS
-http://IP:8090/hd365.m3u8                canal HLS
-http://IP:8090/playlist.m3u              playlist toate canalele (TS)
-http://IP:8090/playlist.m3u?type=hls     playlist HLS
+http://IP:7000/udp/239.1.1.1:1234        udpxy (UDP)
+http://IP:7000/rtp/239.1.1.1:5000        udpxy (RTP)
+http://IP:4000/hd365                     canal HTTP-TS
+http://IP:4000/hd365.m3u8                canal HLS
+http://IP:4000/playlist.m3u              playlist toate canalele (TS)
+http://IP:4000/playlist.m3u?type=hls     playlist HLS
 ```
 
 Cu token setat se adaugă `?token=XXX` (playlistul îl include automat).

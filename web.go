@@ -21,10 +21,21 @@ var webFS embed.FS
 
 var startTime = time.Now()
 
-type server struct{}
+type server struct{ role string }
 
-func (server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (sv server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path
+	sep := separateUdpxy(getConfig())
+	isStream := strings.HasPrefix(p, "/udp/") || strings.HasPrefix(p, "/rtp/")
+	if sep && sv.role == "relay" && isStream {
+		http.Error(w, "udpxy ruleaza pe portul separat "+getConfig().UdpxyListen, 404)
+		return
+	}
+	if sv.role == "udpxy" && !isStream && !(p == "/" || p == "/login" || p == "/logout" || p == "/panel" ||
+		p == "/favicon.ico" || p == "/status" || strings.HasPrefix(p, "/api/")) {
+		http.NotFound(w, r) // canalele sunt doar pe portul relay
+		return
+	}
 	switch {
 	case p == "/":
 		http.Redirect(w, r, "/panel", http.StatusFound)
@@ -456,7 +467,8 @@ func apiStatus(w http.ResponseWriter) {
 		"uptime": int64(time.Since(startTime).Seconds()), "version": version,
 		"channels": chs, "groups": groups, "clients": cl,
 		"total_in": totalIn, "total_out": totalOut, "mem": ms.Alloc, "goroutines": runtime.NumGoroutine(),
-		"udpxy": c.UdpxyEnabled, "listen": c.Listen, "token": c.StreamToken,
+		"udpxy": c.UdpxyEnabled, "listen": c.Listen, "udpxy_listen": c.UdpxyListen, "udpxy_sep": separateUdpxy(c),
+		"listen_errors": getListenErrs(), "token": c.StreamToken,
 	})
 }
 
@@ -663,6 +675,7 @@ func apiImport(w http.ResponseWriter, r *http.Request) {
 func apiSettings(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Listen       string   `json:"listen"`
+		UdpxyListen  string   `json:"udpxy_listen"`
 		Interface    string   `json:"interface"`
 		UdpxyEnabled bool     `json:"udpxy_enabled"`
 		StreamToken  string   `json:"stream_token"`
@@ -675,16 +688,33 @@ func apiSettings(w http.ResponseWriter, r *http.Request) {
 		jsonErr(w, 400, err.Error())
 		return
 	}
-	req.Listen = strings.TrimSpace(req.Listen)
-	if req.Listen == "" {
-		req.Listen = ":8090"
+	norm := func(a, def string) (string, bool) {
+		a = strings.TrimSpace(a)
+		if a == "" {
+			a = def
+		}
+		if !strings.Contains(a, ":") {
+			a = ":" + a
+		}
+		_, port, err := net.SplitHostPort(a)
+		if err != nil {
+			return a, false
+		}
+		if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
+			return a, false
+		}
+		return a, true
 	}
-	if !strings.Contains(req.Listen, ":") {
-		req.Listen = ":" + req.Listen
-	}
-	if _, _, err := net.SplitHostPort(req.Listen); err != nil {
-		jsonErr(w, 400, "adresa de ascultare invalida")
+	var ok bool
+	if req.Listen, ok = norm(req.Listen, ":4000"); !ok {
+		jsonErr(w, 400, "port relay invalid")
 		return
+	}
+	if strings.TrimSpace(req.UdpxyListen) != "" {
+		if req.UdpxyListen, ok = norm(req.UdpxyListen, ":7000"); !ok {
+			jsonErr(w, 400, "port udpxy invalid")
+			return
+		}
 	}
 	if req.Interface != "" {
 		if _, err := resolveIfaceIP(req.Interface); err != nil {
@@ -716,7 +746,8 @@ func apiSettings(w http.ResponseWriter, r *http.Request) {
 		ips = append(ips, a)
 	}
 	cfgMu.Lock()
-	listenChanged := cfg.Listen != req.Listen
+	listenChanged := cfg.Listen != req.Listen || cfg.UdpxyListen != req.UdpxyListen
+	cfg.UdpxyListen = req.UdpxyListen
 	ifChanged := cfg.Interface != req.Interface
 	cfg.Listen = req.Listen
 	cfg.Interface = strings.TrimSpace(req.Interface)

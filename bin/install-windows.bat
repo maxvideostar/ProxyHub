@@ -9,6 +9,7 @@ if not exist "%EXE%" set EXE=proxyhub.exe
 "%EXE%" install
 "%EXE%" start
 echo.
-echo ProxyHub instalat. Panou: http://localhost:8090/panel   (admin / admin)
-start "" http://localhost:8090/panel
+echo ProxyHub instalat. Panou: http://localhost:4000/panel   (admin / admin)
+echo Relay canale: port 4000   udpxy: port 7000
+start "" http://localhost:4000/panel
 pause

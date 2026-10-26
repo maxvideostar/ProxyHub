@@ -27,12 +27,17 @@ else
   "$DIR/proxyhub" -c "$DIR/proxyhub.json" install
   "$DIR/proxyhub" -c "$DIR/proxyhub.json" start
 fi
-PORT=$(grep -o '"listen": *"[^"]*"' "$DIR/proxyhub.json" 2>/dev/null | grep -o '[0-9]*"$' | tr -d '"'); PORT=${PORT:-8090}
-if command -v ufw >/dev/null && ufw status | grep -q active; then ufw allow "$PORT"/tcp >/dev/null && echo "ufw: portul $PORT deschis"; fi
+sleep 1
+PORT=$(grep -o '"listen": *"[^"]*"' "$DIR/proxyhub.json" 2>/dev/null | grep -o '[0-9]*"$' | tr -d '"'); PORT=${PORT:-4000}
+UPORT=$(grep -o '"udpxy_listen": *"[^"]*"' "$DIR/proxyhub.json" 2>/dev/null | grep -o '[0-9]*"$' | tr -d '"')
+if command -v ufw >/dev/null && ufw status | grep -q active; then
+  for P in $PORT $UPORT; do ufw allow "$P"/tcp >/dev/null && echo "ufw: portul $P deschis"; done
+fi
 IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 echo
 echo "==============================================="
 echo " ProxyHub ruleaza:  http://${IP:-localhost}:$PORT/panel"
+echo " Relay canale:      port $PORT   |   udpxy: port ${UPORT:-$PORT}"
 echo " Login implicit:    admin / admin  (schimba-l!)"
 echo " Config:            $DIR/proxyhub.json"
 echo " Log:               $DIR/proxyhub.log  |  journalctl -u ProxyHub -f"

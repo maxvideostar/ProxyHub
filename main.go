@@ -18,24 +18,28 @@ import (
 	"github.com/kardianos/service"
 )
 
-const version = "1.0.0"
+const version = "1.1.0"
 
 var (
-	srvMu   sync.Mutex
-	httpSrv *http.Server
+	srvMu      sync.Mutex
+	httpSrvs   []*http.Server
+	listenErrs = map[string]string{}
 )
 
-func startHTTP() error {
-	c := getConfig()
-	ln, err := net.Listen("tcp", c.Listen)
+func listenOne(addr, role string) error {
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
+		srvMu.Lock()
+		listenErrs[role] = addr + ": " + err.Error()
+		srvMu.Unlock()
 		return err
 	}
-	s := &http.Server{Handler: server{}, ReadHeaderTimeout: 15 * time.Second, IdleTimeout: 120 * time.Second}
+	s := &http.Server{Handler: server{role: role}, ReadHeaderTimeout: 15 * time.Second, IdleTimeout: 120 * time.Second}
 	srvMu.Lock()
-	httpSrv = s
+	httpSrvs = append(httpSrvs, s)
+	delete(listenErrs, role)
 	srvMu.Unlock()
-	log.Printf("[http] ProxyHub %s asculta pe %s", version, c.Listen)
+	log.Printf("[http] %s asculta pe %s", role, addr)
 	go func() {
 		if err := s.Serve(ln); err != nil && err != http.ErrServerClosed {
 			log.Printf("[http] %v", err)
@@ -44,12 +48,42 @@ func startHTTP() error {
 	return nil
 }
 
+// startHTTP opens the relay/panel port and, if configured, a separate udpxy port.
+func startHTTP() error {
+	c := getConfig()
+	log.Printf("[http] ProxyHub %s", version)
+	if err := listenOne(c.Listen, "relay"); err != nil {
+		return err
+	}
+	if separateUdpxy(c) {
+		if err := listenOne(c.UdpxyListen, "udpxy"); err != nil {
+			log.Printf("[http] udpxy nu poate porni pe %s: %v", c.UdpxyListen, err)
+		}
+	}
+	return nil
+}
+
+func separateUdpxy(c Config) bool {
+	return c.UdpxyListen != "" && c.UdpxyListen != c.Listen
+}
+
+func getListenErrs() map[string]string {
+	srvMu.Lock()
+	defer srvMu.Unlock()
+	m := map[string]string{}
+	for k, v := range listenErrs {
+		m[k] = v
+	}
+	return m
+}
+
 func stopHTTP() {
 	srvMu.Lock()
-	s := httpSrv
-	httpSrv = nil
+	ss := httpSrvs
+	httpSrvs = nil
+	listenErrs = map[string]string{}
 	srvMu.Unlock()
-	if s != nil {
+	for _, s := range ss {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		s.Shutdown(ctx)
 		cancel()
@@ -61,12 +95,20 @@ func restartHTTP() {
 	log.Printf("[http] restart server web")
 	stopHTTP()
 	if err := startHTTP(); err != nil {
-		log.Printf("[http] EROARE la pornire pe noua adresa: %v - revin la :8090", err)
+		log.Printf("[http] EROARE pe portul relay: %v - revin la :4000", err)
 		cfgMu.Lock()
-		cfg.Listen = ":8090"
+		cfg.Listen = ":4000"
 		saveConfigLocked()
 		cfgMu.Unlock()
-		startHTTP()
+		stopHTTP()
+		if startHTTP() != nil {
+			cfgMu.Lock()
+			cfg.Listen = ":8090"
+			saveConfigLocked()
+			cfgMu.Unlock()
+			stopHTTP()
+			startHTTP()
+		}
 	}
 }
 
